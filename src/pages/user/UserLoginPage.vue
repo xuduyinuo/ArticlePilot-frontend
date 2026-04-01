@@ -33,7 +33,13 @@
           <h2 class="form-title">欢迎回来</h2>
           <p class="form-subtitle">登录您的账号继续创作</p>
 
-          <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit" class="login-form">
+          <a-form
+            :model="formState"
+            name="basic"
+            autocomplete="off"
+            @finish="handleSubmit"
+            class="login-form"
+          >
             <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
               <a-input
                 v-model:value="formState.userAccount"
@@ -156,7 +162,7 @@ const handleSubmit = async (values: any) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #15803D 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
 }
 
 .brand-bg::before {
@@ -166,13 +172,20 @@ const handleSubmit = async (values: any) => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
   animation: pulse-bg 8s ease-in-out infinite;
 }
 
 @keyframes pulse-bg {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 0.3; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
 }
 
 .brand-content {

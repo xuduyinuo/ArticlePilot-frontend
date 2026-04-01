@@ -33,7 +33,13 @@
           <h2 class="form-title">创建账号</h2>
           <p class="form-subtitle">注册开启您的 AI 创作之旅</p>
 
-          <a-form :model="formState" name="basic" autocomplete="off" @finish="handleSubmit" class="register-form">
+          <a-form
+            :model="formState"
+            name="basic"
+            autocomplete="off"
+            @finish="handleSubmit"
+            class="register-form"
+          >
             <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入账号' }]">
               <a-input
                 v-model:value="formState.userAccount"
@@ -106,7 +112,12 @@ import { useRouter } from 'vue-router'
 import { userRegister } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import { reactive } from 'vue'
-import { UserOutlined, LockOutlined, SafetyOutlined, CheckCircleOutlined } from '@ant-design/icons-vue'
+import {
+  UserOutlined,
+  LockOutlined,
+  SafetyOutlined,
+  CheckCircleOutlined,
+} from '@ant-design/icons-vue'
 
 const router = useRouter()
 
@@ -187,7 +198,7 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #22C55E 0%, #16A34A 50%, #15803D 100%);
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #15803d 100%);
 }
 
 .brand-bg::before {
@@ -197,13 +208,20 @@ const handleSubmit = async (values: API.UserRegisterRequest) => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 60%);
   animation: pulse-bg 8s ease-in-out infinite;
 }
 
 @keyframes pulse-bg {
-  0%, 100% { transform: scale(1); opacity: 0.5; }
-  50% { transform: scale(1.1); opacity: 0.3; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.3;
+  }
 }
 
 .brand-content {

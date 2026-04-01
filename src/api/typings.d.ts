@@ -1,4 +1,41 @@
 declare namespace API {
+  type ArticleCreateRequest = {
+    topic?: string
+  }
+
+  type ArticleQueryRequest = {
+    pageNum?: number
+    pageSize?: number
+    sortField?: string
+    sortOrder?: string
+    userId?: number
+    status?: string
+  }
+
+  type ArticleVO = {
+    id?: number
+    taskId?: string
+    userId?: number
+    topic?: string
+    mainTitle?: string
+    subTitle?: string
+    outline?: OutlineItem[]
+    content?: string
+    fullContent?: string
+    coverImage?: string
+    images?: ImageItem[]
+    status?: string
+    errorMessage?: string
+    createTime?: string
+    completedTime?: string
+  }
+
+  type BaseResponseArticleVO = {
+    code?: number
+    data?: ArticleVO
+    message?: string
+  }
+
   type BaseResponseBoolean = {
     code?: number
     data?: boolean
@@ -14,6 +51,12 @@ declare namespace API {
   type BaseResponseLong = {
     code?: number
     data?: number
+    message?: string
+  }
+
+  type BaseResponsePageArticleVO = {
+    code?: number
+    data?: PageArticleVO
     message?: string
   }
 
@@ -45,12 +88,29 @@ declare namespace API {
     id?: number
   }
 
+  type getArticleParams = {
+    taskId: string
+  }
+
+  type getProgressParams = {
+    taskId: string
+  }
+
   type getUserByIdParams = {
     id: number
   }
 
   type getUserVOByIdParams = {
     id: number
+  }
+
+  type ImageItem = {
+    position?: number
+    url?: string
+    method?: string
+    keywords?: string
+    sectionTitle?: string
+    description?: string
   }
 
   type LoginUserVO = {
@@ -71,6 +131,26 @@ declare namespace API {
     asc?: boolean
   }
 
+  type OutlineItem = {
+    section?: number
+    title?: string
+    points?: string[]
+  }
+
+  type PageArticleVO = {
+    records?: ArticleVO[]
+    total?: number
+    size?: number
+    current?: number
+    orders?: OrderItem[]
+    optimizeCountSql?: PageArticleVO
+    searchCount?: PageArticleVO
+    optimizeJoinOfCountSql?: boolean
+    maxLimit?: number
+    countId?: string
+    pages?: number
+  }
+
   type PageUserVO = {
     records?: UserVO[]
     total?: number
@@ -85,6 +165,10 @@ declare namespace API {
     pages?: number
   }
 
+  type SseEmitter = {
+    timeout?: number
+  }
+
   type User = {
     id?: number
     userAccount?: string
@@ -93,6 +177,7 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    quota?: number
     editTime?: string
     createTime?: string
     updateTime?: string

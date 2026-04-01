@@ -1,7 +1,7 @@
-import { message } from "ant-design-vue"
-import { USER_ROLE_ADMIN } from "./constants/user"
-import { useLoginUserStore } from "./stores/loginUser"
-import router from "./router"
+import { message } from 'ant-design-vue'
+import { USER_ROLE_ADMIN } from './constants/user'
+import { useLoginUserStore } from './stores/loginUser'
+import router from './router'
 
 // 是否为首次获取登录用户
 let firstFetchLoginUser = true
@@ -12,14 +12,14 @@ let firstFetchLoginUser = true
 router.beforeEach(async (to, from, next) => {
   const loginUserStore = useLoginUserStore()
   let loginUser = loginUserStore.loginUser
-  
+
   // 首次加载时，等后端返回用户信息后再校验权限
   if (firstFetchLoginUser) {
     await loginUserStore.fetchLoginUser()
     loginUser = loginUserStore.loginUser
     firstFetchLoginUser = false
   }
-  
+
   const toUrl = to.fullPath
   // 管理员页面权限校验
   if (toUrl.startsWith('/admin')) {
