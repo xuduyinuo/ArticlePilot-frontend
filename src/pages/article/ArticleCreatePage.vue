@@ -41,150 +41,221 @@
 
       <!-- 中间：主内容区 -->
       <main ref="mainContentRef" class="main-content">
-        <!-- 输入状态 -->
-        <div v-if="!isCreating && !isCompleted" class="input-state">
-          <div class="input-card">
-            <div class="input-header">
-              <h1 class="input-title">创作新文章</h1>
-              <p class="input-subtitle">输入选题，AI 帮你生成爆款文章</p>
-            </div>
+        <!-- 阶段切换（带过渡动画） -->
+        <Transition name="fade-slide" mode="out-in">
+          <!-- 输入状态 -->
+          <div v-if="currentPhase === 'INPUT'" key="input" class="input-state">
+            <div class="input-card">
+              <div class="input-header">
+                <h1 class="input-title">创作新文章</h1>
+                <p class="input-subtitle">输入选题，AI 帮你生成爆款文章</p>
+              </div>
 
-            <div class="input-area">
-              <a-textarea
-                v-model:value="topic"
-                placeholder="请输入您想创作的文章选题，例如：2026年AI如何改变职场"
-                :rows="6"
-                :maxlength="500"
-                show-count
-                class="topic-textarea"
-              />
-              <!-- 文章风格选择 -->
-              <div class="style-section">
-                <div class="section-header">
-                  <span class="section-title">文章风格</span>
-                  <span class="section-tip">（不选择使用默认风格）</span>
+              <div class="input-area">
+                <a-textarea
+                  v-model:value="topic"
+                  placeholder="请输入您想创作的文章选题，例如：2026年AI如何改变职场"
+                  :rows="6"
+                  :maxlength="500"
+                  show-count
+                  class="topic-textarea"
+                />
+                <!-- 文章风格选择 -->
+                <div class="style-section">
+                  <div class="section-header">
+                    <span class="section-title">文章风格</span>
+                    <span class="section-tip">（不选择使用默认风格）</span>
+                  </div>
+                  <a-radio-group v-model:value="selectedStyle" class="style-group">
+                    <a-radio value="">默认</a-radio>
+                    <a-radio value="tech">科技风格</a-radio>
+                    <a-radio value="emotional">情感风格</a-radio>
+                    <a-radio value="educational">教育风格</a-radio>
+                    <a-radio value="humorous">轻松幽默</a-radio>
+                  </a-radio-group>
                 </div>
-                <a-radio-group v-model:value="selectedStyle" class="style-group">
-                  <a-radio value="">默认</a-radio>
-                  <a-radio value="tech">科技风格</a-radio>
-                  <a-radio value="emotional">情感风格</a-radio>
-                  <a-radio value="educational">教育风格</a-radio>
-                  <a-radio value="humorous">轻松幽默</a-radio>
-                </a-radio-group>
-              </div>
 
-              <!-- 配图方式选择 -->
-              <div class="image-methods-section">
-                <div class="section-header">
-                  <span class="section-title">配图方式</span>
-                  <span class="section-tip">（不选择表示支持所有方式）</span>
+                <!-- 配图方式选择 -->
+                <div class="image-methods-section">
+                  <div class="section-header">
+                    <span class="section-title">配图方式</span>
+                    <span class="section-tip">（不选择表示支持所有方式）</span>
+                  </div>
+                  <a-checkbox-group v-model:value="selectedImageMethods" class="methods-group">
+                    <a-checkbox value="PEXELS">Pexels</a-checkbox>
+                    <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
+                    <a-checkbox value="MERMAID">Mermaid</a-checkbox>
+                    <a-checkbox value="ICONIFY">Iconify</a-checkbox>
+                    <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
+                    <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
+                  </a-checkbox-group>
                 </div>
-                <a-checkbox-group v-model:value="selectedImageMethods" class="methods-group">
-                  <a-checkbox value="PEXELS">Pexels</a-checkbox>
-                  <a-checkbox value="NANO_BANANA">Nano Banana</a-checkbox>
-                  <a-checkbox value="MERMAID">Mermaid</a-checkbox>
-                  <a-checkbox value="ICONIFY">Iconify</a-checkbox>
-                  <a-checkbox value="EMOJI_PACK">表情包</a-checkbox>
-                  <a-checkbox value="SVG_DIAGRAM">SVG</a-checkbox>
-                </a-checkbox-group>
-              </div>
-              <a-button
-                type="primary"
-                size="large"
-                :loading="isCreating"
-                :disabled="!topic.trim() || !hasQuota"
-                @click="startCreate"
-                class="create-btn"
-              >
-                <template #icon>
-                  <RocketOutlined />
-                </template>
-                开始创作
-              </a-button>
-              <div v-if="!hasQuota" class="quota-warning">
-                <WarningOutlined />
-                <span>配额已用完，无法创建文章</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 创作进行中 -->
-        <div v-if="isCreating && !isCompleted" class="creating-state">
-          <!-- 标题预览 -->
-          <div v-if="article.mainTitle" class="preview-header">
-            <h1 class="article-title">{{ article.mainTitle }}</h1>
-            <p class="article-subtitle">{{ article.subTitle }}</p>
-          </div>
-
-          <!-- 大纲预览（流式解析展示） -->
-          <div v-if="outlineRaw" class="outline-preview">
-            <div class="section-label">
-              <BulbOutlined />
-              <span>文章大纲</span>
-              <span v-if="isOutlineStreaming" class="typing-cursor">|</span>
-            </div>
-            <div class="outline-list">
-              <div v-for="item in parsedOutline" :key="item.section" class="outline-item">
-                <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
-                <ul class="outline-points">
-                  <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
-                </ul>
+                <a-button
+                  type="primary"
+                  size="large"
+                  :loading="isCreating"
+                  :disabled="!topic.trim() || !hasQuota"
+                  @click="startCreate"
+                  class="create-btn"
+                >
+                  <template #icon>
+                    <RocketOutlined />
+                  </template>
+                  开始创作
+                </a-button>
+                <div v-if="!hasQuota" class="quota-warning">
+                  <WarningOutlined />
+                  <span>配额已用完，无法创建文章</span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- 正文预览（流式输出） -->
-          <div v-if="article.content" class="content-preview">
-            <div v-html="markdownToHtml(article.content)" class="markdown-body"></div>
-            <span v-if="isStreaming" class="typing-cursor">|</span>
-          </div>
-
-          <!-- 配图进度 -->
-          <div v-if="currentStep === 4 && imageProgress > 0" class="image-progress-box">
-            <div class="progress-header">
-              <PictureOutlined />
-              <span>正在生成配图</span>
-            </div>
-            <a-progress
-              :percent="imageProgress"
-              status="active"
-              :stroke-color="{ from: '#22C55E', to: '#16A34A' }"
-            />
-            <p class="progress-hint">{{ imageCount }}/{{ totalImages }} 张图片已完成</p>
-          </div>
-
-          <!-- 加载占位 -->
-          <div v-if="currentStep === 0 && !article.mainTitle" class="loading-placeholder">
+          <!-- 标题生成中 -->
+          <div
+            v-else-if="currentPhase === 'TITLE_GENERATING'"
+            key="title-generating"
+            class="loading-stage"
+          >
             <a-spin size="large" />
-            <p>AI 正在构思标题...</p>
-          </div>
-        </div>
-
-        <!-- 创作完成 -->
-        <div v-if="isCompleted" class="completed-state">
-          <div class="success-header">
-            <CheckCircleFilled class="success-icon" />
-            <span>文章创作完成！</span>
+            <h3>AI 正在生成标题方案...</h3>
+            <p>稍等片刻，即将为您呈现多个精彩标题</p>
           </div>
 
-          <div class="preview-header">
-            <h1 class="article-title">{{ article.mainTitle }}</h1>
-            <p class="article-subtitle">{{ article.subTitle }}</p>
+          <!-- 标题选择阶段 -->
+          <TitleSelectingStage
+            v-else-if="currentPhase === 'TITLE_SELECTING'"
+            key="title-selecting"
+            :title-options="titleOptions"
+            :loading="confirmLoading"
+            @confirm="handleConfirmTitle"
+          />
+
+          <!-- 大纲生成中（流式展示） -->
+          <div
+            v-else-if="currentPhase === 'OUTLINE_GENERATING'"
+            key="outline-generating"
+            class="outline-generating-state"
+          >
+            <!-- 标题预览 -->
+            <div v-if="article.mainTitle" class="preview-header">
+              <h1 class="article-title">{{ article.mainTitle }}</h1>
+              <p class="article-subtitle">{{ article.subTitle }}</p>
+            </div>
+
+            <!-- 大纲流式展示 -->
+            <div class="outline-preview">
+              <div class="section-label">
+                <BulbOutlined />
+                <span>AI 正在规划文章大纲</span>
+                <span class="typing-cursor">|</span>
+              </div>
+              <div v-if="parsedOutline.length > 0" class="outline-list">
+                <div v-for="item in parsedOutline" :key="item.section" class="outline-item fade-in">
+                  <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
+                  <ul class="outline-points">
+                    <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
+                  </ul>
+                </div>
+              </div>
+              <div v-else class="outline-loading">
+                <a-spin />
+                <span>正在构建文章结构...</span>
+              </div>
+            </div>
           </div>
-          <div class="content-preview">
-            <div
-              v-html="markdownToHtml(article.fullContent || article.content)"
-              class="markdown-body"
-            ></div>
+
+          <!-- 大纲编辑阶段 -->
+          <OutlineEditingStage
+            v-else-if="currentPhase === 'OUTLINE_EDITING'"
+            key="outline-editing"
+            :outline="outline"
+            :loading="confirmLoading"
+            :task-id="taskId"
+            @confirm="handleConfirmOutline"
+          />
+
+          <!-- 正文生成阶段 -->
+          <div
+            v-else-if="currentPhase === 'CONTENT_GENERATING'"
+            key="content-generating"
+            class="creating-state"
+          >
+            <!-- 标题预览 -->
+            <div v-if="article.mainTitle" class="preview-header">
+              <h1 class="article-title">{{ article.mainTitle }}</h1>
+              <p class="article-subtitle">{{ article.subTitle }}</p>
+            </div>
+
+            <!-- 大纲预览（流式解析展示） -->
+            <div v-if="outlineRaw" class="outline-preview">
+              <div class="section-label">
+                <BulbOutlined />
+                <span>文章大纲</span>
+                <span v-if="isOutlineStreaming" class="typing-cursor">|</span>
+              </div>
+              <div class="outline-list">
+                <div v-for="item in parsedOutline" :key="item.section" class="outline-item">
+                  <div class="outline-title">{{ item.section }}. {{ item.title }}</div>
+                  <ul class="outline-points">
+                    <li v-for="(point, idx) in item.points" :key="idx">{{ point }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 正文预览（流式输出） -->
+            <div v-if="article.content" class="content-preview">
+              <div v-html="markdownToHtml(article.content)" class="markdown-body"></div>
+              <span v-if="isStreaming" class="typing-cursor">|</span>
+            </div>
+
+            <!-- 配图进度 -->
+            <div v-if="currentStep === 4 && imageProgress > 0" class="image-progress-box">
+              <div class="progress-header">
+                <PictureOutlined />
+                <span>正在生成配图</span>
+              </div>
+              <a-progress
+                :percent="imageProgress"
+                status="active"
+                :stroke-color="{ from: '#22C55E', to: '#16A34A' }"
+              />
+              <p class="progress-hint">{{ imageCount }}/{{ totalImages }} 张图片已完成</p>
+            </div>
+
+            <!-- 加载占位 -->
+            <div v-if="currentStep === 0 && !article.mainTitle" class="loading-placeholder">
+              <a-spin size="large" />
+              <p>AI 正在构思标题...</p>
+            </div>
           </div>
-        </div>
+
+          <!-- 创作完成 -->
+          <div v-else-if="currentPhase === 'COMPLETED'" key="completed" class="completed-state">
+            <div class="success-header">
+              <CheckCircleFilled class="success-icon" />
+              <span>文章创作完成！</span>
+            </div>
+
+            <div class="preview-header">
+              <h1 class="article-title">{{ article.mainTitle }}</h1>
+              <p class="article-subtitle">{{ article.subTitle }}</p>
+            </div>
+            <div class="content-preview">
+              <div
+                v-html="markdownToHtml(article.fullContent || article.content || '')"
+                class="markdown-body"
+              ></div>
+            </div>
+          </div>
+        </Transition>
       </main>
 
       <!-- 右侧：辅助面板 -->
       <aside class="sidebar-right">
         <!-- 配额信息 -->
-        <div v-if="!isCreating && !isCompleted" class="panel-section quota-section">
+        <div v-if="currentPhase === 'INPUT'" class="panel-section quota-section">
           <h4 class="panel-title">
             <CrownOutlined />
             创作配额
@@ -212,7 +283,7 @@
         </div>
 
         <!-- 热门选题 -->
-        <div v-if="!isCreating && !isCompleted" class="panel-section">
+        <div v-if="currentPhase === 'INPUT'" class="panel-section">
           <h4 class="panel-title">
             <BulbOutlined />
             热门选题
@@ -230,7 +301,7 @@
         </div>
 
         <!-- 创作技巧 -->
-        <div v-if="!isCreating && !isCompleted" class="panel-section">
+        <div v-if="currentPhase === 'INPUT'" class="panel-section">
           <h4 class="panel-title">
             <StarOutlined />
             爆款技巧
@@ -260,8 +331,13 @@
           </div>
         </div>
 
-        <!-- 创作进行中的提示 -->
-        <div v-if="isCreating && !isCompleted" class="panel-section">
+        <!-- 创作进行中的提示（所有创作阶段） -->
+        <div
+          v-if="
+            isCreating || currentPhase === 'TITLE_SELECTING' || currentPhase === 'OUTLINE_EDITING'
+          "
+          class="panel-section"
+        >
           <h4 class="panel-title">
             <ClockCircleOutlined />
             创作进度
@@ -276,14 +352,110 @@
               <span class="step-value">{{ currentStep }}/{{ agentSteps.length }}</span>
             </div>
           </div>
-          <div class="progress-tip">
+          <div v-if="isCreating" class="progress-tip">
             <InfoCircleOutlined />
             <span>AI 正在努力创作中，请耐心等待...</span>
+          </div>
+          <div v-else class="progress-tip waiting">
+            <InfoCircleOutlined />
+            <span>等待您的确认...</span>
+          </div>
+        </div>
+
+        <!-- 当前选题提示 -->
+        <div
+          v-if="currentPhase !== 'INPUT' && currentPhase !== 'COMPLETED' && topic"
+          class="panel-section"
+        >
+          <h4 class="panel-title">
+            <BulbOutlined />
+            创作选题
+          </h4>
+          <div class="topic-display">
+            <p>{{ topic }}</p>
+          </div>
+        </div>
+
+        <!-- 阶段提示 -->
+        <div v-if="currentPhase === 'TITLE_GENERATING'" class="panel-section tips-section">
+          <h4 class="panel-title">
+            <StarOutlined />
+            提示
+          </h4>
+          <div class="tips-list">
+            <div class="tip-item">
+              <div class="tip-icon">💡</div>
+              <div class="tip-content">
+                <div class="tip-desc">AI 正在分析您的选题，生成多个吸引眼球的标题方案</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentPhase === 'TITLE_SELECTING'" class="panel-section tips-section">
+          <h4 class="panel-title">
+            <StarOutlined />
+            提示
+          </h4>
+          <div class="tips-list">
+            <div class="tip-item">
+              <div class="tip-icon">✅</div>
+              <div class="tip-content">
+                <div class="tip-desc">
+                  选择最符合您期望的标题，或添加补充描述让 AI 更好地理解您的需求
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentPhase === 'OUTLINE_GENERATING'" class="panel-section tips-section">
+          <h4 class="panel-title">
+            <StarOutlined />
+            提示
+          </h4>
+          <div class="tips-list">
+            <div class="tip-item">
+              <div class="tip-icon">📝</div>
+              <div class="tip-content">
+                <div class="tip-desc">AI 正在为您规划文章结构，构建清晰的章节脉络</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentPhase === 'OUTLINE_EDITING'" class="panel-section tips-section">
+          <h4 class="panel-title">
+            <StarOutlined />
+            编辑技巧
+          </h4>
+          <div class="tips-list">
+            <div class="tip-item">
+              <div class="tip-icon">1</div>
+              <div class="tip-content">
+                <div class="tip-title">拖动排序</div>
+                <div class="tip-desc">点击章节左侧拖动图标可调整章节顺序</div>
+              </div>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">2</div>
+              <div class="tip-content">
+                <div class="tip-title">AI 助手</div>
+                <div class="tip-desc">使用 AI 助手快速修改大纲结构</div>
+              </div>
+            </div>
+            <div class="tip-item">
+              <div class="tip-icon">3</div>
+              <div class="tip-content">
+                <div class="tip-title">添加章节</div>
+                <div class="tip-desc">根据需要添加或删除章节和要点</div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- 操作按钮 -->
-        <div v-if="isCompleted" class="panel-section">
+        <div v-if="currentPhase === 'COMPLETED'" class="panel-section">
           <h4 class="panel-title">
             <ThunderboltOutlined />
             快捷操作
@@ -305,7 +477,7 @@
         </div>
 
         <!-- 完成后的统计 -->
-        <div v-if="isCompleted" class="panel-section stats-section">
+        <div v-if="currentPhase === 'COMPLETED'" class="panel-section stats-section">
           <h4 class="panel-title">
             <BarChartOutlined />
             文章统计
@@ -371,9 +543,11 @@ import {
   WarningOutlined,
   CrownOutlined,
 } from '@ant-design/icons-vue'
-import { createArticle } from '@/api/articleController'
+import { createArticle, confirmTitle, confirmOutline } from '@/api/articleController'
 import { connectSSE, closeSSE, type SSEMessage } from '@/utils/sse'
 import { marked } from 'marked'
+import TitleSelectingStage from './components/TitleSelectingStage.vue'
+import OutlineEditingStage from './components/OutlineEditingStage.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -404,6 +578,9 @@ const exampleTopics = [
   '健康饮食指南',
 ]
 
+// 阶段状态
+const currentPhase = ref<string>('INPUT') // INPUT, TITLE_SELECTING, OUTLINE_EDITING, CONTENT_GENERATING, COMPLETED
+
 // 状态
 const topic = ref('')
 const selectedStyle = ref('') // 选中的文章风格（空字符串表示默认）
@@ -416,6 +593,14 @@ const currentStep = ref(0)
 const taskId = ref('')
 const errorVisible = ref(false)
 const errorMessage = ref('')
+
+const confirmLoading = ref(false)
+
+// 标题方案
+const titleOptions = ref<Array<{ mainTitle: string; subTitle: string }>>([])
+
+// 大纲数据
+const outline = ref<Array<{ section: number; title: string; points: string[] }>>([])
 
 // 大纲数据（流式）
 const outlineRaw = ref('')
@@ -489,8 +674,8 @@ const article = ref<Partial<API.ArticleVO>>({
 let eventSource: EventSource | null = null
 
 // Markdown 转 HTML
-const markdownToHtml = (markdown: string) => {
-  return marked(markdown)
+const markdownToHtml = (markdown: string | undefined) => {
+  return marked(markdown || '')
 }
 
 // 自动滚动到底部
@@ -525,8 +710,11 @@ const startCreate = async () => {
       enabledImageMethods:
         selectedImageMethods.value.length > 0 ? selectedImageMethods.value : undefined,
     })
-    taskId.value = res.data.data
-
+    const newTaskId = res.data.data
+    if (!newTaskId) {
+      throw new Error('创建任务失败：未返回任务ID')
+    }
+    taskId.value = newTaskId
     // 刷新用户信息（更新配额）
     await loginUserStore.fetchLoginUser()
 
@@ -536,8 +724,9 @@ const startCreate = async () => {
       onError: handleSSEError,
       onComplete: handleSSEComplete,
     })
-  } catch (error: any) {
-    message.error(error.message || '创建任务失败')
+  } catch (error) {
+    const err = error as Error
+    message.error(err.message || '创建任务失败')
     isCreating.value = false
   }
 }
@@ -548,27 +737,42 @@ const handleSSEMessage = (msg: SSEMessage) => {
 
   switch (msg.type) {
     case 'AGENT1_COMPLETE':
-      // 标题生成完成，进入大纲步骤
+      // 智能体1完成，进入标题生成阶段（显示加载）
+      currentPhase.value = 'TITLE_GENERATING'
       currentStep.value = 1
-      article.value.mainTitle = msg.title?.mainTitle
-      article.value.subTitle = msg.title?.subTitle
+      break
+
+    case 'TITLES_GENERATED':
+      // 标题方案生成完成，切换到选择标题阶段
+      currentPhase.value = 'TITLE_SELECTING'
+      titleOptions.value = msg.titleOptions || []
+      isCreating.value = false
       break
 
     case 'AGENT2_STREAMING':
-      // 大纲流式输出
+      // 大纲流式输出（显示生成中状态）
+      currentPhase.value = 'OUTLINE_GENERATING'
       isOutlineStreaming.value = true
       outlineRaw.value += msg.content || ''
       scrollToBottom()
       break
 
-    case 'AGENT2_COMPLETE':
-      // 大纲完成，进入正文步骤
+    case 'OUTLINE_GENERATED':
+      // 大纲生成完成，切换到编辑大纲阶段
+      currentPhase.value = 'OUTLINE_EDITING'
+      outline.value = msg.outline || []
+      isCreating.value = false
       isOutlineStreaming.value = false
+      break
+
+    case 'AGENT2_COMPLETE':
+      // 大纲完成（内部处理，已在 OUTLINE_GENERATED 中切换阶段）
       currentStep.value = 2
       break
 
     case 'AGENT3_STREAMING':
       // 正文流式输出
+      currentPhase.value = 'CONTENT_GENERATING'
       isStreaming.value = true
       article.value.content += msg.content || ''
       scrollToBottom()
@@ -606,6 +810,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
 
     case 'ALL_COMPLETE':
       // 全部完成
+      currentPhase.value = 'COMPLETED'
       currentStep.value = 6
       isCompleted.value = true
       message.success('文章创作完成!')
@@ -615,7 +820,57 @@ const handleSSEMessage = (msg: SSEMessage) => {
       errorMessage.value = msg.message || '创作失败'
       errorVisible.value = true
       isCreating.value = false
+      currentPhase.value = 'INPUT'
       break
+  }
+}
+
+// 确认标题
+const handleConfirmTitle = async (data: {
+  mainTitle: string
+  subTitle: string
+  userDescription: string
+}) => {
+  confirmLoading.value = true
+  try {
+    await confirmTitle({
+      taskId: taskId.value,
+      selectedMainTitle: data.mainTitle,
+      selectedSubTitle: data.subTitle,
+      userDescription: data.userDescription,
+    })
+    // 保存标题信息，用于大纲生成阶段展示
+    article.value.mainTitle = data.mainTitle
+    article.value.subTitle = data.subTitle
+    // 不直接切换阶段，等待 SSE 消息 OUTLINE_GENERATED
+    message.success('标题已确认，正在生成大纲...')
+  } catch (error) {
+    const err = error as Error
+    message.error(err.message || '确认标题失败')
+  } finally {
+    confirmLoading.value = false
+  }
+}
+
+// 确认大纲
+const handleConfirmOutline = async (
+  outlineData: Array<{ section: number; title: string; points: string[] }>,
+) => {
+  confirmLoading.value = true
+  try {
+    await confirmOutline({
+      taskId: taskId.value,
+      outline: outlineData,
+    })
+    // 更新 outlineRaw 为用户修改后的大纲，确保 CONTENT_GENERATING 阶段展示正确的大纲
+    outlineRaw.value = JSON.stringify({ sections: outlineData })
+    // 不直接切换阶段，等待后端开始生成正文并推送 AGENT3_STREAMING
+    message.success('大纲已确认，正在生成正文...')
+  } catch (error) {
+    const err = error as Error
+    message.error(err.message || '确认大纲失败')
+  } finally {
+    confirmLoading.value = false
   }
 }
 
@@ -649,8 +904,11 @@ const viewArticle = () => {
 
 // 重新创作
 const resetCreate = () => {
+  currentPhase.value = 'INPUT'
   topic.value = ''
   selectedStyle.value = ''
+  titleOptions.value = []
+  outline.value = []
   isCreating.value = false
   isCompleted.value = false
   isStreaming.value = false
@@ -659,6 +917,7 @@ const resetCreate = () => {
   imageCount.value = 0
   imageProgress.value = 0
   outlineRaw.value = ''
+  confirmLoading.value = false
   article.value = {
     mainTitle: '',
     subTitle: '',
@@ -737,8 +996,8 @@ onBeforeUnmount(() => {
     content: '';
     position: absolute;
     left: 15px;
-    top: 44px;
-    bottom: 0;
+    top: 46px;
+    bottom: -14px;
     width: 2px;
     background: var(--color-border);
   }
@@ -1125,9 +1384,19 @@ onBeforeUnmount(() => {
   :deep(img) {
     display: block;
     max-width: 100%;
+    max-height: 600px;
+    width: auto;
+    height: auto;
     margin: 20px auto;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
+    object-fit: contain;
+  }
+
+  // Mermaid 图表特殊处理（SVG 格式）
+  :deep(img[src$='.svg']) {
+    max-width: 800px;
+    max-height: 500px;
   }
 }
 
@@ -1419,6 +1688,38 @@ onBeforeUnmount(() => {
     flex-shrink: 0;
     margin-top: 2px;
   }
+
+  &.waiting {
+    background: rgba(250, 173, 20, 0.08);
+    color: #d48806;
+  }
+}
+
+/* 选题展示 */
+.topic-display {
+  padding: 12px 16px;
+  background: var(--color-background-secondary);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--color-primary);
+
+  p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--color-text);
+    line-height: 1.6;
+  }
+}
+
+/* 提示面板样式 */
+.tips-section {
+  .tip-icon {
+    background: transparent;
+    font-size: 16px;
+  }
+
+  .tip-desc {
+    font-size: 12px;
+  }
 }
 
 /* 文章统计 */
@@ -1502,6 +1803,22 @@ onBeforeUnmount(() => {
   }
 }
 
+/* 阶段切换过渡动画 */
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
 /* 动画 */
 @keyframes blink {
   0%,
@@ -1531,6 +1848,60 @@ onBeforeUnmount(() => {
   50% {
     opacity: 0.5;
   }
+}
+
+/* 加载阶段样式 */
+.loading-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 40px;
+  text-align: center;
+
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 24px 0 8px;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    margin: 0;
+  }
+}
+
+/* 大纲生成中状态 */
+.outline-generating-state {
+  max-width: 100%;
+}
+
+.outline-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+}
+
+/* 渐入动画 */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fade-in 0.4s ease-out;
 }
 
 /* 响应式 */
