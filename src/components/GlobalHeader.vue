@@ -24,6 +24,15 @@
       <!-- 右侧：用户操作区域 -->
       <div class="header-right">
         <div v-if="loginUserStore.loginUser.id" class="user-dropdown">
+          <!-- VIP 标识 -->
+          <RouterLink v-if="!isVip" to="/vip" class="upgrade-vip-btn">
+            <CrownOutlined />
+            <span>升级 VIP</span>
+          </RouterLink>
+          <RouterLink v-else to="/vip" class="vip-badge">
+            <CrownOutlined />
+            <span>VIP</span>
+          </RouterLink>
           <a-dropdown>
             <a-space class="user-info">
               <a-avatar :src="loginUserStore.loginUser.userAvatar" :size="36" class="user-avatar" />
@@ -31,6 +40,16 @@
             </a-space>
             <template #overlay>
               <a-menu class="dropdown-menu">
+                <a-menu-item
+                  v-if="isVip"
+                  key="vip-info"
+                  class="vip-info-item"
+                  @click="router.push('/vip')"
+                >
+                  <CrownOutlined />
+                  <span>永久会员权益</span>
+                </a-menu-item>
+                <a-menu-divider v-if="isVip" />
                 <a-menu-item @click="doLogout" class="dropdown-item">
                   <LogoutOutlined />
                   <span>退出登录</span>
@@ -59,7 +78,9 @@ import {
   EditOutlined,
   UnorderedListOutlined,
   SettingOutlined,
+  CrownOutlined,
 } from '@ant-design/icons-vue'
+import { USER_ROLE_VIP } from '@/constants/user'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -68,6 +89,11 @@ const selectedKeys = ref<string[]>(['/'])
 // 监听路由变化，更新当前选中菜单
 router.afterEach((to) => {
   selectedKeys.value = [to.path]
+})
+
+// 判断是否为 VIP
+const isVip = computed(() => {
+  return loginUserStore.loginUser.userRole === USER_ROLE_VIP
 })
 
 // 菜单配置项
@@ -220,6 +246,7 @@ const doLogout = async () => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 16px;
 }
 
 .user-dropdown {
@@ -227,6 +254,50 @@ const doLogout = async () => {
   height: 64px;
   display: flex;
   align-items: center;
+  gap: 16px;
+}
+
+.upgrade-vip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: rgba(34, 197, 94, 0.08);
+    color: var(--color-primary-dark);
+  }
+
+  .anticon {
+    font-size: 13px;
+  }
+}
+
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    color: var(--color-primary-dark);
+  }
+
+  .anticon {
+    font-size: 13px;
+  }
 }
 
 .user-info {
@@ -290,6 +361,17 @@ const doLogout = async () => {
 
 .dropdown-item:hover {
   background: var(--color-background-secondary);
+}
+
+.vip-info-item {
+  color: var(--color-primary-dark);
+  background: rgba(34, 197, 94, 0.1);
+  font-weight: 600;
+  cursor: default;
+
+  &:hover {
+    background: rgba(34, 197, 94, 0.15);
+  }
 }
 
 /* 响应式 */
