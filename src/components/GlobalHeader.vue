@@ -79,8 +79,9 @@ import {
   UnorderedListOutlined,
   SettingOutlined,
   CrownOutlined,
+  BarChartOutlined,
 } from '@ant-design/icons-vue'
-import { USER_ROLE_VIP } from '@/constants/user'
+import { isVip as checkIsVip } from '@/utils/permission'
 
 const loginUserStore = useLoginUserStore()
 const router = useRouter()
@@ -91,10 +92,8 @@ router.afterEach((to) => {
   selectedKeys.value = [to.path]
 })
 
-// 判断是否为 VIP
-const isVip = computed(() => {
-  return loginUserStore.loginUser.userRole === USER_ROLE_VIP
-})
+// 判断是否为 VIP（管理员也视为 VIP）
+const isVip = computed(() => checkIsVip(loginUserStore.loginUser))
 
 // 菜单配置项
 const originItems = [
@@ -117,6 +116,12 @@ const originItems = [
     key: '/admin/userManage',
     icon: SettingOutlined,
     label: '管理',
+    admin: true,
+  },
+  {
+    key: '/admin/statistics',
+    icon: BarChartOutlined,
+    label: '数据',
     admin: true,
   },
 ]

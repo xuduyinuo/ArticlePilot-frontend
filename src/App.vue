@@ -1,9 +1,17 @@
 <script setup lang="ts">
+import { provide } from 'vue'
 import BasicLayout from '@/layouts/BasicLayout.vue'
+
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
+
+// 提供全局中文语言配置
+provide('locale', zhCN)
 </script>
 
 <template>
-  <BasicLayout />
+  <a-config-provider :locale="zhCN">
+    <BasicLayout />
+  </a-config-provider>
 </template>
 
 <style>

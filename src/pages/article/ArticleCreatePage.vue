@@ -381,6 +381,24 @@
           </div>
         </div>
 
+        <!-- 实时执行日志 -->
+        <div v-if="realtimeLogs.length > 0" class="panel-section realtime-logs-section">
+          <h4 class="panel-title">
+            <FileTextOutlined />
+            执行日志
+          </h4>
+          <div class="logs-container">
+            <div
+              v-for="(log, index) in realtimeLogs"
+              :key="index"
+              :class="['log-entry', log.level]"
+            >
+              <span class="log-time">{{ formatLogTime(log.timestamp) }}</span>
+              <span class="log-message">{{ log.message }}</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 当前选题提示 -->
         <div
           v-if="currentPhase !== 'INPUT' && currentPhase !== 'COMPLETED' && topic"
@@ -541,7 +559,7 @@ import { ref, onBeforeUnmount, onMounted, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
-import { USER_ROLE_ADMIN } from '@/constants/user'
+
 import {
   RocketOutlined,
   LoadingOutlined,
@@ -561,10 +579,16 @@ import {
   PictureOutlined,
   WarningOutlined,
   CrownOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons-vue'
 import { USER_ROLE_VIP } from '@/constants/user'
 import { createArticle, confirmTitle, confirmOutline } from '@/api/articleController'
 import { connectSSE, closeSSE, type SSEMessage } from '@/utils/sse'
+import {
+  isAdmin as checkIsAdmin,
+  isVip as checkIsVip,
+  hasQuota as checkHasQuota,
+} from '@/utils/permission'
 import { marked } from 'marked'
 import TitleSelectingStage from './components/TitleSelectingStage.vue'
 import OutlineEditingStage from './components/OutlineEditingStage.vue'
@@ -574,10 +598,10 @@ const route = useRoute()
 const loginUserStore = useLoginUserStore()
 
 // 配额相关计算属性
-const isAdmin = computed(() => loginUserStore.loginUser.userRole === USER_ROLE_ADMIN)
-const isVip = computed(() => loginUserStore.loginUser.userRole === USER_ROLE_VIP)
+const isAdmin = computed(() => checkIsAdmin(loginUserStore.loginUser))
+const isVip = computed(() => checkIsVip(loginUserStore.loginUser))
 const quota = computed(() => loginUserStore.loginUser.quota ?? 0)
-const hasQuota = computed(() => isAdmin.value || isVip.value || quota.value > 0)
+const hasQuota = computed(() => checkHasQuota(loginUserStore.loginUser))
 
 // 智能体步骤（对应后端 6 个步骤）
 const agentSteps = [
@@ -616,6 +640,14 @@ const errorVisible = ref(false)
 const errorMessage = ref('')
 
 const confirmLoading = ref(false)
+
+// 实时日志
+interface RealtimeLog {
+  timestamp: number
+  level: string
+  message: string
+}
+const realtimeLogs = ref<RealtimeLog[]>([])
 
 // 标题方案
 const titleOptions = ref<Array<{ mainTitle: string; subTitle: string }>>([])
@@ -723,6 +755,9 @@ const startCreate = async () => {
   isCreating.value = true
   currentStep.value = 0
 
+  realtimeLogs.value = []
+  addLog('开始创建文章任务...', 'info')
+
   try {
     // 创建任务
     const res = await createArticle({
@@ -736,10 +771,12 @@ const startCreate = async () => {
       throw new Error('创建任务失败：未返回任务ID')
     }
     taskId.value = newTaskId
+    addLog(`任务创建成功，ID: ${newTaskId}`, 'success')
     // 刷新用户信息（更新配额）
     await loginUserStore.fetchLoginUser()
 
     // 建立 SSE 连接
+    addLog('已建立实时连接，开始生成...', 'info')
     eventSource = connectSSE(taskId.value, {
       onMessage: handleSSEMessage,
       onError: handleSSEError,
@@ -752,6 +789,25 @@ const startCreate = async () => {
   }
 }
 
+// 添加日志
+const addLog = (message: string, level: string = 'info') => {
+  realtimeLogs.value.push({
+    timestamp: Date.now(),
+    level,
+    message,
+  })
+  // 限制日志数量，最多保留 50 条
+  if (realtimeLogs.value.length > 50) {
+    realtimeLogs.value.shift()
+  }
+}
+
+// 格式化日志时间
+const formatLogTime = (timestamp: number) => {
+  const date = new Date(timestamp)
+  return date.toLocaleTimeString('zh-CN', { hour12: false })
+}
+
 // 处理 SSE 消息
 const handleSSEMessage = (msg: SSEMessage) => {
   console.log('SSE消息:', msg)
@@ -761,6 +817,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
       // 智能体1完成，进入标题生成阶段（显示加载）
       currentPhase.value = 'TITLE_GENERATING'
       currentStep.value = 1
+      addLog('智能体1：标题方案生成完成', 'success')
       break
 
     case 'TITLES_GENERATED':
@@ -768,6 +825,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
       currentPhase.value = 'TITLE_SELECTING'
       titleOptions.value = msg.titleOptions || []
       isCreating.value = false
+      addLog(`生成了 ${msg.titleOptions?.length || 0} 个标题方案`, 'success')
       break
 
     case 'AGENT2_STREAMING':
@@ -784,6 +842,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
       outline.value = msg.outline || []
       isCreating.value = false
       isOutlineStreaming.value = false
+      addLog('大纲生成完成，等待确认', 'success')
       // 保持在步骤1（规划大纲），用户编辑大纲时仍处于此阶段
       break
 
@@ -805,30 +864,35 @@ const handleSSEMessage = (msg: SSEMessage) => {
       // 正文完成，进入配图分析步骤
       isStreaming.value = false
       currentStep.value = 3
+      addLog('正文生成完成', 'success')
       break
 
     case 'AGENT4_COMPLETE':
       // 配图分析完成，进入配图生成步骤
       currentStep.value = 4
       totalImages.value = msg.imageRequirements?.length || 5
+      addLog(`配图需求分析完成，共 ${totalImages.value} 张`, 'success')
       break
 
     case 'IMAGE_COMPLETE':
       // 单张配图完成
       imageCount.value++
       imageProgress.value = Math.round((imageCount.value / totalImages.value) * 100)
+      addLog(`配图生成中 ${imageCount.value}/${totalImages.value}`, 'info')
       break
 
     case 'AGENT5_COMPLETE':
       // 所有配图完成，进入图文合成步骤
       currentStep.value = 5
       article.value.images = msg.images
+      addLog('所有配图生成完成', 'success')
       break
 
     case 'MERGE_COMPLETE':
       // 图文合成完成
       article.value.fullContent = msg.fullContent
       scrollToBottom()
+      addLog('图文合成完成', 'success')
       break
 
     case 'ALL_COMPLETE':
@@ -837,6 +901,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
       currentStep.value = 6
       isCompleted.value = true
       message.success('文章创作完成!')
+      addLog('✨ 文章创作完成！', 'success')
       break
 
     case 'ERROR':
@@ -844,6 +909,7 @@ const handleSSEMessage = (msg: SSEMessage) => {
       errorVisible.value = true
       isCreating.value = false
       currentPhase.value = 'INPUT'
+      addLog(`创作失败: ${msg.message || '未知错误'}`, 'error')
       break
   }
 }
@@ -941,6 +1007,7 @@ const resetCreate = () => {
   imageProgress.value = 0
   outlineRaw.value = ''
   confirmLoading.value = false
+  realtimeLogs.value = []
   article.value = {
     mainTitle: '',
     subTitle: '',
@@ -1758,6 +1825,73 @@ onBeforeUnmount(() => {
   &.waiting {
     background: rgba(250, 173, 20, 0.08);
     color: #d48806;
+  }
+}
+
+/* 实时日志 */
+.realtime-logs-section {
+  .logs-container {
+    max-height: 300px;
+    overflow-y: auto;
+    background: var(--color-background);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+    padding: 8px;
+
+    .log-entry {
+      display: flex;
+      gap: 8px;
+      padding: 6px 8px;
+      font-size: 11px;
+      line-height: 1.4;
+      border-radius: var(--radius-sm);
+      margin-bottom: 4px;
+      transition: background var(--transition-fast);
+
+      &:hover {
+        background: var(--color-background-secondary);
+      }
+
+      &.success {
+        .log-time {
+          color: var(--color-success);
+        }
+      }
+
+      &.error {
+        background: rgba(239, 68, 68, 0.05);
+        .log-time {
+          color: var(--color-error);
+        }
+        .log-message {
+          color: var(--color-error);
+        }
+      }
+
+      .log-time {
+        flex-shrink: 0;
+        color: var(--color-text-muted);
+        font-weight: 500;
+      }
+
+      .log-message {
+        flex: 1;
+        color: var(--color-text-secondary);
+      }
+    }
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: var(--radius-full);
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
   }
 }
 

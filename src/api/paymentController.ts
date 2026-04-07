@@ -22,7 +22,7 @@ export async function getPaymentRecords(options?: { [key: string]: any }) {
 export async function refund(
   // 叠加生成的Param类型 (非body参数swagger默认没有生成对象)
   params: API.refundParams,
-  options?: { [key: string]: any },
+  options?: { [key: string]: any }
 ) {
   return request<API.BaseResponseBoolean>('/payment/refund', {
     method: 'POST',

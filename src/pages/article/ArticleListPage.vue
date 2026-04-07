@@ -104,6 +104,17 @@
                   查看
                 </a-button>
                 <a-button
+                  v-if="record.status === 'FAILED'"
+                  type="link"
+                  size="small"
+                  @click="retryArticle(record)"
+                  class="action-btn retry-btn"
+                >
+                  <RedoOutlined />
+                  重试
+                </a-button>
+                <a-button
+                  v-else
                   type="link"
                   size="small"
                   @click="exportArticle(record)"
@@ -148,7 +159,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import {
   PlusOutlined,
   SearchOutlined,
@@ -156,6 +167,7 @@ import {
   DownloadOutlined,
   DeleteOutlined,
   FileTextOutlined,
+  RedoOutlined,
 } from '@ant-design/icons-vue'
 import { listArticle, deleteArticle as deleteArticleApi, getArticle } from '@/api/articleController'
 import dayjs, { type Dayjs } from 'dayjs'
@@ -206,6 +218,7 @@ const pagination = ref({
   showSizeChanger: true,
   showQuickJumper: true,
   showTotal: (total: number) => `共 ${total} 条`,
+  pageSizeOptions: ['10', '20', '50', '100'],
 })
 
 // 加载数据
@@ -291,7 +304,7 @@ const viewArticle = (record: API.ArticleVO) => {
 // 导出文章
 const exportArticle = async (record: API.ArticleVO) => {
   try {
-    const res = await getArticle(record.taskId)
+    const res = await getArticle({ taskId: record.taskId || '' })
     const article = res.data.data
     if (!article) {
       message.error('文章数据不存在')
@@ -316,20 +329,39 @@ const exportArticle = async (record: API.ArticleVO) => {
     URL.revokeObjectURL(url)
 
     message.success('导出成功')
-  } catch (error: any) {
-    message.error(error.message || '导出失败')
+  } catch (error) {
+    message.error((error as Error).message || '导出失败')
   }
 }
 
 // 删除文章
 const deleteArticle = async (record: API.ArticleVO) => {
   try {
-    await deleteArticleApi(record.id)
+    await deleteArticleApi({ id: record.id })
     message.success('删除成功')
     loadData()
-  } catch (error: any) {
-    message.error(error.message || '删除失败')
+  } catch (error) {
+    message.error((error as Error).message || '删除失败')
   }
+}
+
+// 重试文章（重新创建）
+const retryArticle = (record: API.ArticleVO) => {
+  Modal.confirm({
+    title: '确认重试',
+    content: `将使用相同的选题"${record.topic}"重新创建文章，是否继续？`,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: () => {
+      router.push({
+        path: '/create',
+        query: {
+          topic: record.topic || '',
+          style: record.userDescription || '',
+        },
+      })
+    },
+  })
 }
 
 // 跳转创作页面
@@ -450,7 +482,10 @@ onMounted(() => {
 
   .search-input {
     :deep(.ant-input-affix-wrapper) {
-      border-radius: var(--radius-md);
+      border-top-left-radius: var(--radius-md);
+      border-bottom-left-radius: var(--radius-md);
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
       border-color: var(--color-border);
 
       &:hover,
@@ -625,6 +660,14 @@ onMounted(() => {
 
       &:hover {
         color: var(--color-primary-dark);
+      }
+    }
+
+    &.retry-btn {
+      color: #ff4d4f;
+
+      &:hover {
+        color: #dc2626;
       }
     }
 

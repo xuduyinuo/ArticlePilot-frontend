@@ -43,6 +43,11 @@ const router = createRouter({
       component: () => import('@/pages/admin/UserManagePage.vue'),
     },
     {
+      path: '/admin/statistics',
+      name: '数据分析',
+      component: () => import('@/pages/admin/StatisticsPage.vue'),
+    },
+    {
       path: '/vip',
       name: '会员购买',
       component: () => import('@/pages/VipPage.vue'),

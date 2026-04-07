@@ -1,4 +1,30 @@
 declare namespace API {
+  type AgentExecutionStats = {
+    taskId?: string
+    totalDurationMs?: number
+    agentCount?: number
+    agentDurations?: Record<string, any>
+    overallStatus?: string
+    logs?: AgentLog[]
+  }
+
+  type AgentLog = {
+    id?: number
+    taskId?: string
+    agentName?: string
+    startTime?: string
+    endTime?: string
+    durationMs?: number
+    status?: string
+    errorMessage?: string
+    prompt?: string
+    inputData?: string
+    outputData?: string
+    createTime?: string
+    updateTime?: string
+    isDelete?: number
+  }
+
   type ArticleAiModifyOutlineRequest = {
     taskId?: string
     modifySuggestion?: string
@@ -52,6 +78,12 @@ declare namespace API {
     completedTime?: string
   }
 
+  type BaseResponseAgentExecutionStats = {
+    code?: number
+    data?: AgentExecutionStats
+    message?: string
+  }
+
   type BaseResponseArticleVO = {
     code?: number
     data?: ArticleVO
@@ -100,6 +132,12 @@ declare namespace API {
     message?: string
   }
 
+  type BaseResponseStatisticsVO = {
+    code?: number
+    data?: StatisticsVO
+    message?: string
+  }
+
   type BaseResponseString = {
     code?: number
     data?: string
@@ -129,6 +167,10 @@ declare namespace API {
   }
 
   type getArticleParams = {
+    taskId: string
+  }
+
+  type getExecutionLogsParams = {
     taskId: string
   }
 
@@ -233,6 +275,19 @@ declare namespace API {
 
   type SseEmitter = {
     timeout?: number
+  }
+
+  type StatisticsVO = {
+    todayCount?: number
+    weekCount?: number
+    monthCount?: number
+    totalCount?: number
+    successRate?: number
+    avgDurationMs?: number
+    activeUserCount?: number
+    totalUserCount?: number
+    vipUserCount?: number
+    quotaUsed?: number
   }
 
   type TitleOption = {
